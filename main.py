@@ -18,18 +18,18 @@ token = os.getenv("TOKEN")
 tasklist_id = os.getenv("TASKLIST_ID")
 student_id = os.getenv("STUDENT_ID")
 assert student_id is not None
-outfile = open(os.getenv("OUTFILE"), "w") or stdout
+outfile = open(os.getenv("OUTFILE"), "w") if os.getenv("OUTFILE") is not None else stdout
 
 async def main():
     cp = CoursePlatform(student_id)
     await cp.login()
     hws = await cp.fetch_hw()
-    hws = list(filter(lambda x: x.open_date is None or x.open_date > last_run, hws))
-    hws.sort(key=lambda x: x.end_date)
+    hws = list(filter(lambda x: x.created_at is None or x.created_at > last_run, hws))
+    hws.sort(key=lambda x: x.end_at)
     await cp.close()
 
     l = TodoList(token, tasklist_id)
-    await l.add_todos([ms.Todo(title=f'{hw.course_name}: {hw.title}', end_date=hw.end_date) for hw in hws])
+    await l.add_todos([ms.Todo(title=f'{hw.course_name}: {hw.title}', end_date=hw.end_at) for hw in hws])
 
     config = {
         'LAST_RUN': int(datetime.now(tz=timezone.utc).timestamp()),
@@ -38,7 +38,7 @@ async def main():
         'TASKLIST_ID': l.get_tasklist_id()
     }
 
-    outfile.writelines([f'{k}={v}' for k, v in config.items()])
+    outfile.writelines([f'{k}={v}\n' for k, v in config.items()])
     outfile.close()
 
 if __name__ == '__main__':

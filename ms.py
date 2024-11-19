@@ -70,8 +70,9 @@ class TodoList:
         try:
             if self.tasklist_id:
                 l = self.client.me.todo.lists.by_todo_task_list_id(self.tasklist_id)
+                await l.get()
         except ODataError:
-            pass
+            l = None
         if l is None:
             l = await self.client.me.todo.lists.post(TodoTaskList(display_name="BJTU Homeworks"))
             self.tasklist_id = l.id

@@ -17,15 +17,25 @@ FUTURE = datetime(2077, 1, 1, tzinfo=UTC_8)
 
 class Homework(NamedTuple):
     course_name: str
-    open_date: datetime
-    end_date: datetime
+    open_at: datetime
+    end_at: datetime
+    created_at: datetime
     title: str
 
+
+def parse_date(date: str) -> datetime | None:
+    if len(date) > 0:
+        try:
+            return datetime.strptime(date, '%Y-%m-%d %H:%M').replace(tzinfo=UTC_8)
+        except ValueError:
+            return datetime.strptime(date, '%Y-%m-%d %H:%M:%S').replace(tzinfo=UTC_8)
+
+
 class CoursePlatform:
-    def __init__(self, stuid: str):
+    def __init__(self, student_id: str):
         self.cookie_jar = aiohttp.CookieJar(unsafe=True)
         self.session = aiohttp.ClientSession(base_url=BASE_URL, headers=HEADERS, cookie_jar=self.cookie_jar)
-        self.stuid = stuid
+        self.student_id = student_id
 
     async def http_get(self, url: str, params: dict = None) -> aiohttp.ClientResponse:
         return await self.session.get('/ve' + url, headers=HEADERS, params=params)
@@ -46,17 +56,13 @@ class CoursePlatform:
             'login': 'main_2',
             'qxkt_type': '',
             'qxkt_url': '',
-            'username': self.stuid,
-            'password': hashlib.md5(f'Bjtu@{self.stuid}'.encode()).hexdigest(),
+            'username': self.student_id,
+            'password': hashlib.md5(f'Bjtu@{self.student_id}'.encode()).hexdigest(),
             'passcode': str(passcode)
         })
 
         if not 200 <= resp.status < 300:
             raise Exception('Failed logging in.')
-
-    def __parse_date(self, date: str):
-        if len(date) > 0:
-            return datetime.strptime(date, '%Y-%m-%d %H:%M').replace(tzinfo=UTC_8)
 
     async def fetch_course_hw(self, course) -> list[Homework]:
         result = []
@@ -75,12 +81,13 @@ class CoursePlatform:
             hws = j['courseNoteList']
 
             result += [Homework(course_name=hw['course_name'],
-                        open_date=self.__parse_date(hw['open_date']) or DISTANT_PAST,
-                        end_date=self.__parse_date(hw['end_time']) or FUTURE,
-                        title=hw['title']) for hw in hws if not hw['subTime']]
+                                open_at=parse_date(hw['open_date']) or DISTANT_PAST,
+                                created_at=parse_date(hw['create_date']) or DISTANT_PAST,
+                                end_at=parse_date(hw['end_time']),
+                                title=hw['title']) for hw in hws if not hw['subTime']]
 
             now = datetime.now(UTC_8)
-            result = list(filter(lambda hw: hw.end_date > now, result))
+            result = list(filter(lambda hw: hw.end_at and hw.end_at > now, result))
         return result
 
     async def fetch_hw(self) -> list[Homework]:
