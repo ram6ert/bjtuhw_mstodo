@@ -59,11 +59,15 @@ class Todo(NamedTuple):
 class TodoList:
     def __init__(self, token: str = None, tasklist_id: str = None):
         self.tasklist_id = tasklist_id
-        self.credential = PersistentDeviceCodeCredential(refresh_token=token)
+        self.credential = PersistentDeviceCodeCredential(refresh_token=token, callback=self.login_callback)
         self.client = GraphServiceClient(
             request_adapter=
                 GraphRequestAdapter(
                     AzureIdentityAuthenticationProvider(credentials=self.credential, scopes=["Tasks.ReadWrite"])))
+
+    def login_callback(self, uri, code):
+        print(f'Login at {uri} with {code}.')
+
 
     async def create_task_list_if_not_exist(self) -> TodoTaskListItemRequestBuilder:
         l = None

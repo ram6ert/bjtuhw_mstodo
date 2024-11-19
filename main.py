@@ -18,7 +18,7 @@ token = os.getenv("TOKEN")
 tasklist_id = os.getenv("TASKLIST_ID")
 student_id = os.getenv("STUDENT_ID")
 assert student_id is not None
-outfile = open(os.getenv("OUTFILE"), "w") if os.getenv("OUTFILE") is not None else stdout
+outfile = os.getenv("OUTFILE")
 
 async def main():
     cp = CoursePlatform(student_id)
@@ -38,6 +38,11 @@ async def main():
         'TASKLIST_ID': l.get_tasklist_id()
     }
 
+    global outfile
+    if outfile is None:
+        outfile = stdout
+    else:
+        outfile = open(outfile, 'w')
     outfile.writelines([f'{k}={v}\n' for k, v in config.items()])
     outfile.close()
 
