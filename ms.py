@@ -26,6 +26,13 @@ class PersistentDeviceCodeCredential(AsyncTokenCredential):
             authority="https://login.microsoftonline.com/consumers",
         )
 
+    def device_code_login(self, scopes) -> dict:
+        flow = self.app.initiate_device_flow(scopes=list(scopes))
+        if self.callback is None:
+            print(flow['message'])
+        else:
+            self.callback(flow['verification_uri'], flow['user_code'])
+        return self.app.acquire_token_by_device_flow(flow)
 
     async def get_token(
             self,
@@ -39,12 +46,7 @@ class PersistentDeviceCodeCredential(AsyncTokenCredential):
         if self.refresh_token is not None:
             result = self.app.acquire_token_by_refresh_token(self.refresh_token, list(scopes))
         if 'access_token' not in result:
-            flow = self.app.initiate_device_flow(scopes=list(scopes))
-            if self.callback is None:
-                print(flow['message'])
-            else:
-                self.callback(flow['verification_uri'], flow['user_code'])
-            result = self.app.acquire_token_by_device_flow(flow)
+            result = self.device_code_login(scopes)
         self.refresh_token = result['refresh_token']
 
         if 'access_token' not in result:
@@ -64,6 +66,12 @@ class TodoList:
             request_adapter=
                 GraphRequestAdapter(
                     AzureIdentityAuthenticationProvider(credentials=self.credential, scopes=["Tasks.ReadWrite"])))
+
+    async def force_login(self):
+        try:
+            await self.client.me.get()
+        except:
+            pass
 
     def login_callback(self, uri, code):
         print(f'Login at {uri} with {code}.')

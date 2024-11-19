@@ -21,6 +21,9 @@ assert student_id is not None
 outfile = os.getenv("OUTFILE")
 
 async def main():
+    l = TodoList(token, tasklist_id)
+    await l.force_login()
+
     cp = CoursePlatform(student_id)
     await cp.login()
     hws = await cp.fetch_hw()
@@ -28,7 +31,6 @@ async def main():
     hws.sort(key=lambda x: x.end_at)
     await cp.close()
 
-    l = TodoList(token, tasklist_id)
     await l.add_todos([ms.Todo(title=f'{hw.course_name}: {hw.title}', end_date=hw.end_at) for hw in hws])
 
     config = {
