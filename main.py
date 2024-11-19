@@ -31,7 +31,7 @@ async def main():
     hws.sort(key=lambda x: x.end_at)
     await cp.close()
 
-    await l.add_todos([ms.Todo(title=f'{hw.course_name}: {hw.title}', end_date=hw.end_at) for hw in hws])
+    await l.add_todos([ms.Todo(title=f'{hw.course_name}: {hw.title}', end_date=hw.end_at, content=hw.content) for hw in hws])
 
     config = {
         'LAST_RUN': int(datetime.now(tz=timezone.utc).timestamp()),

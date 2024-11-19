@@ -5,7 +5,9 @@ from azure.core.credentials import TokenCredential, AccessToken
 from azure.core.credentials_async import AsyncTokenCredential
 from msal import PublicClientApplication
 from msgraph import GraphServiceClient, GraphRequestAdapter
+from msgraph.generated.models.body_type import BodyType
 from msgraph.generated.models.date_time_time_zone import DateTimeTimeZone
+from msgraph.generated.models.item_body import ItemBody
 from msgraph.generated.models.o_data_errors.o_data_error import ODataError
 from msgraph.generated.models.todo_task import TodoTask
 from msgraph.generated.models.todo_task_list import TodoTaskList
@@ -56,6 +58,7 @@ class PersistentDeviceCodeCredential(AsyncTokenCredential):
 class Todo(NamedTuple):
     title: str
     end_date: datetime
+    content: str
 
 
 class TodoList:
@@ -86,7 +89,7 @@ class TodoList:
         except ODataError:
             l = None
         if l is None:
-            l = await self.client.me.todo.lists.post(TodoTaskList(display_name="BJTU Homeworks"))
+            l = await self.client.me.todo.lists.post(TodoTaskList(display_name="BJTU Homework"))
             self.tasklist_id = l.id
 
             l = self.client.me.todo.lists.by_todo_task_list_id(l.id)
@@ -98,13 +101,15 @@ class TodoList:
         tasks = []
         for todo in todos:
             tasks.append(l.tasks.post(TodoTask(title=todo.title,
-                                  due_date_time=DateTimeTimeZone(
-                                         date_time=todo.end_date.strftime("%Y-%m-%dT%H:%M"),
-                                            time_zone="Asia/Shanghai"))))
+                                body=ItemBody(content_type=BodyType("html"),
+                                              content=todo.content),
+                                                due_date_time=DateTimeTimeZone(
+                                                    date_time=todo.end_date.strftime("%Y-%m-%dT%H:%M"),
+                                                    time_zone="Asia/Shanghai"))))
         for task in tasks:
             await task
             # try not to exceed the limit
-            await asyncio.sleep(3)
+            await asyncio.sleep(1)
 
         # await asyncio.gather(*tasks)
 

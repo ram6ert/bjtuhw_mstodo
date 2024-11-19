@@ -21,6 +21,7 @@ class Homework(NamedTuple):
     end_at: datetime
     created_at: datetime
     title: str
+    content: str
 
 
 def parse_date(date: str) -> datetime | None:
@@ -84,6 +85,7 @@ class CoursePlatform:
                                 open_at=parse_date(hw['open_date']) or DISTANT_PAST,
                                 created_at=parse_date(hw['create_date']) or DISTANT_PAST,
                                 end_at=parse_date(hw['end_time']),
+                                content=hw['content'],
                                 title=hw['title']) for hw in hws if not hw['subTime']]
 
             now = datetime.now(UTC_8)
