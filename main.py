@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import math
 import os
 from sys import stdout
 
@@ -14,20 +15,30 @@ if last_run is None:
 else:
     last_run = datetime.fromtimestamp(int(last_run), tz=timezone.utc)
 
+latest_hw = os.getenv("LATEST_HW")
+if latest_hw is None:
+    latest_hw = last_run
+else:
+    latest_hw = datetime.fromtimestamp(int(latest_hw), tz=timezone.utc)
+
 token = os.getenv("TOKEN")
 tasklist_id = os.getenv("TASKLIST_ID")
 student_id = os.getenv("STUDENT_ID")
 assert student_id is not None
 outfile = os.getenv("OUTFILE")
 
+
 async def main():
+    global latest_hw
+
     l = TodoList(token, tasklist_id)
     await l.force_login()
 
     cp = CoursePlatform(student_id)
     await cp.login()
     hws = await cp.fetch_hw()
-    hws = list(filter(lambda x: x.created_at is None or x.created_at > last_run, hws))
+    latest_hw = max(hws, key=lambda x: x.created_at).created_at
+    hws = list(filter(lambda x: x.created_at is None or x.created_at > latest_hw, hws))
     hws.sort(key=lambda x: x.end_at)
     await cp.close()
 
@@ -35,6 +46,7 @@ async def main():
 
     config = {
         'LAST_RUN': int(datetime.now(tz=timezone.utc).timestamp()),
+        'LATEST_HW': math.ceil(latest_hw.timestamp()),
         'TOKEN': l.credential.refresh_token,
         'STUDENT_ID': student_id,
         'TASKLIST_ID': l.get_tasklist_id()
