@@ -25,6 +25,7 @@ token = os.getenv("TOKEN")
 tasklist_id = os.getenv("TASKLIST_ID")
 student_id = os.getenv("STUDENT_ID")
 assert student_id is not None
+password_pattern = os.getenv("PASSWORD")
 outfile = os.getenv("OUTFILE")
 
 
@@ -34,7 +35,7 @@ async def main():
     l = TodoList(token, tasklist_id)
     await l.force_login()
 
-    cp = CoursePlatform(student_id)
+    cp = CoursePlatform(student_id, password_pattern)
     await cp.login()
     hws = await cp.fetch_hw()
     latest_hw = max(hws, key=lambda x: x.created_at).created_at
@@ -49,6 +50,7 @@ async def main():
         'LATEST_HW': math.ceil(latest_hw.timestamp()),
         'TOKEN': l.credential.refresh_token,
         'STUDENT_ID': student_id,
+        'PASSWORD': f'hash:{cp.password_hash}',
         'TASKLIST_ID': l.get_tasklist_id()
     }
 

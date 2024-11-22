@@ -33,10 +33,24 @@ def parse_date(date: str) -> datetime | None:
 
 
 class CoursePlatform:
-    def __init__(self, student_id: str):
+    def __init__(self, student_id: str, password_pattern: str = None):
+        """
+        :param str password_pattern: string starting with 'plain:' or 'hash:' following with plain text password or password hash
+        """
+
         self.cookie_jar = aiohttp.CookieJar(unsafe=True)
         self.session = aiohttp.ClientSession(base_url=BASE_URL, headers=HEADERS, cookie_jar=self.cookie_jar)
         self.student_id = student_id
+        password_pattern = password_pattern or f'plain:Bjtu@{student_id}'
+        if password_pattern.startswith('hash:'):
+            self.password_hash = password_pattern[len('hash:'):]
+        else:
+            if password_pattern.startswith('plain:'):
+                password = password_pattern[len('plain:'):]
+            else:
+                password = password_pattern
+            self.password_hash = hashlib.md5(password.encode()).hexdigest()
+
 
     async def http_get(self, url: str, params: dict = None) -> aiohttp.ClientResponse:
         return await self.session.get('/ve' + url, headers=HEADERS, params=params)
@@ -53,16 +67,17 @@ class CoursePlatform:
         resp = await self.http_get('/confirmImg')
         passcode = await resp.text()
 
+
         resp = await self.http_post('/s.shtml', {
             'login': 'main_2',
             'qxkt_type': '',
             'qxkt_url': '',
             'username': self.student_id,
-            'password': hashlib.md5(f'Bjtu@{self.student_id}'.encode()).hexdigest(),
+            'password': self.password_hash,
             'passcode': str(passcode)
         })
 
-        if not 200 <= resp.status < 300:
+        if not 200 <= resp.status < 300 or (await resp.text()).find('alert(') != -1:
             raise Exception('Failed logging in.')
 
     async def fetch_course_hw(self, course) -> list[Homework]:
