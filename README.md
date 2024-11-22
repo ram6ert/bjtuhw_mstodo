@@ -44,6 +44,7 @@ Fetch a list of homework from "智慧课程平台" and add them to your microsof
     You can see an output similar to the below:
     ```env
     LAST_RUN=1732014330
+    LATEST_HW=1832011223
     TOKEN=...
     STUDENT_ID=23114514
     TASKLIST_ID=...

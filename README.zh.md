@@ -43,6 +43,7 @@
     你会看到一个类似这样的程序输出：  
     ```env
     LAST_RUN=1732014330
+    LATEST_HW=1732011223
     TOKEN=...
     STUDENT_ID=23114514
     TASKLIST_ID=...
