@@ -38,8 +38,9 @@ async def main():
     cp = CoursePlatform(student_id, password_pattern)
     await cp.login()
     hws = await cp.fetch_hw()
-    latest_hw = max(hws, key=lambda x: x.created_at).created_at
+    new_latest_hw = max(hws, key=lambda x: x.created_at).created_at
     hws = list(filter(lambda x: x.created_at is None or x.created_at > latest_hw, hws))
+    latest_hw = new_latest_hw
     hws.sort(key=lambda x: x.end_at)
     await cp.close()
 
