@@ -61,10 +61,14 @@ class Todo(NamedTuple):
     content: str
 
 
+def login_callback(uri, code):
+    print(f'Login at {uri} with {code}.')
+
+
 class TodoList:
     def __init__(self, token: str = None, tasklist_id: str = None):
         self.tasklist_id = tasklist_id
-        self.credential = PersistentDeviceCodeCredential(refresh_token=token, callback=self.login_callback)
+        self.credential = PersistentDeviceCodeCredential(refresh_token=token, callback=login_callback)
         self.client = GraphServiceClient(
             request_adapter=
                 GraphRequestAdapter(
@@ -73,12 +77,8 @@ class TodoList:
     async def force_login(self):
         try:
             await self.client.me.get()
-        except:
+        except ODataError:
             pass
-
-    def login_callback(self, uri, code):
-        print(f'Login at {uri} with {code}.')
-
 
     async def create_task_list_if_not_exist(self) -> TodoTaskListItemRequestBuilder:
         l = None
@@ -98,20 +98,19 @@ class TodoList:
 
     async def add_todos(self, todos: list[Todo]):
         l = await self.create_task_list_if_not_exist()
-        tasks = []
-        for todo in todos:
-            tasks.append(l.tasks.post(TodoTask(title=todo.title,
-                                body=ItemBody(content_type=BodyType("html"),
-                                              content=todo.content),
-                                                due_date_time=DateTimeTimeZone(
-                                                    date_time=todo.end_date.strftime("%Y-%m-%dT%H:%M"),
-                                                    time_zone="Asia/Shanghai"))))
-        for task in tasks:
-            await task
-            # try not to exceed the limit
-            await asyncio.sleep(1)
+        sem = asyncio.Semaphore(4)
+        async def do_task(todo: Todo):
+            async with sem:
+                await l.tasks.post(TodoTask(title=todo.title,
+                                            body=ItemBody(content_type=BodyType("html"),
+                                                        content=todo.content),
+                                            due_date_time=DateTimeTimeZone(
+                                            date_time=todo.end_date.strftime("%Y-%m-%dT%H:%M"),
+                                            time_zone="Asia/Shanghai")))
 
-        # await asyncio.gather(*tasks)
+        tasks = [do_task(todo) for todo in todos]
+
+        await asyncio.gather(*tasks)
 
     def get_tasklist_id(self):
         return self.tasklist_id
