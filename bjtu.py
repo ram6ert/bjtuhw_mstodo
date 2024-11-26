@@ -80,29 +80,29 @@ class CoursePlatform:
         if not 200 <= resp.status < 300 or (await resp.text()).find('alert(') != -1:
             raise Exception('Failed logging in.')
 
-    async def fetch_source_hw_subtype(self, course, subType):
+    async def fetch_course_hw_subtype(self, course: str, sub_type: str):
         resp = await self.http_get('/back/coursePlatform/homeWork.shtml', {
                 'method': 'getHomeWorkList',
                 'cId': course,
-                'subType': str(subType),
+                'subType': sub_type,
                 'page': '1',
                 'pagesize': '50'
             })
 
         j = await resp.json(content_type=None)
-            hws = j['courseNoteList']
         if j['total'] == 0:
             return []
         else:
+            hws = j['courseNoteList']
             return [Homework(course_name=hw['course_name'],
-                            open_at=parse_date(hw['open_date']) or DISTANT_PAST,
-                            created_at=parse_date(hw['create_date']) or DISTANT_PAST,
-                            end_at=parse_date(hw['end_time']),
-                            content=hw['content'],
-                            title=hw['title']) for hw in hws if not hw['subTime']]
+                        open_at=parse_date(hw['open_date']) or DISTANT_PAST,
+                        created_at=parse_date(hw['create_date']) or DISTANT_PAST,
+                        end_at=parse_date(hw['end_time']),
+                        content=hw['content'],
+                        title=hw['title']) for hw in hws if not hw['subTime']]
         
     async def fetch_course_hw(self, course) -> list[Homework]:
-        result = [self.fetch_course_hw_subtype(course, subType) for subType in range(5)]
+        result = [self.fetch_course_hw_subtype(course, str(subType)) for subType in range(5)]
         result = await asyncio.gather(*result)
         result = [i for l in result for i in l]
 
@@ -124,9 +124,9 @@ class CoursePlatform:
             'page': '1',
             'xqCode': sem_id
         })
-        courseList = (await resp.json(content_type=None))['courseList']
+        course_list = (await resp.json(content_type=None))['courseList']
 
-        courses = [{'id': course['id'], 'name': course['name']} for course in courseList]
+        courses = [{'id': course['id'], 'name': course['name']} for course in course_list]
         hws = await asyncio.gather(*[self.fetch_course_hw(course['id']) for course in courses])
         return [i for chw in hws for i in chw]
 
