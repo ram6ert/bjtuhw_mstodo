@@ -1,5 +1,11 @@
 # BJTU ♥ MSTODO
 
+## Notice
+
+Because of the denial of access from "智慧课程平台", we can no longer build our homework checklist with this utility. It is now marked as archived.
+
+## Introduction
+
 Fetch a list of homework from "智慧课程平台" and add them to your microsoft to-do checklist.
 
 ## Usage
